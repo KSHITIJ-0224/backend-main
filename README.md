@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Task Management Backend
 
 A TypeScript Express.js backend for a task management application with authentication and task CRUD operations.
@@ -105,3 +106,6 @@ src/
 - jsonwebtoken - JWT authentication
 - CORS - Cross-origin requests
 - ts-node-dev - Development server
+=======
+# backend-main
+>>>>>>> 237a315ddd32cb1edaaeaa54f9b3068325c98bab
