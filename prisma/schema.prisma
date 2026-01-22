@@ -1,0 +1,28 @@
+// 1️⃣ Database connection
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// 2️⃣ Prisma Client generator
+generator client {
+  provider = "prisma-client-js"
+}
+
+// 3️⃣ Define your models
+model User {
+  id           Int     @id @default(autoincrement())
+  name         String
+  email        String  @unique
+  password     String
+  refreshToken String? // nullable
+  tasks        Task[]
+}
+
+model Task {
+  id        Int      @id @default(autoincrement())
+  title     String
+  status    String   @default("pending")
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id])
+}
