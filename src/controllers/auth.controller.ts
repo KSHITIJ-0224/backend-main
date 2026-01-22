@@ -8,58 +8,72 @@ import {
 import jwt from "jsonwebtoken";
 
 export const register = async (req: Request, res: Response) => {
-  const { name, email, password } = req.body;
+  try {
+    const { name, email, password } = req.body;
 
-  if (!name || !email || !password) {
-    return res.status(400).json({ message: "All fields required" });
+    if (!name || !email || !password) {
+      return res.status(400).json({ message: "All fields required" });
+    }
+
+    const existingUser = await prisma.user.findUnique({
+      where: { email },
+    });
+
+    if (existingUser) {
+      return res.status(400).json({ message: "User already exists" });
+    }
+
+    const hashedPassword = await hashPassword(password);
+
+    await prisma.user.create({
+      data: {
+        name,
+        email,
+        password: hashedPassword,
+      },
+    });
+
+    res.status(201).json({ message: "User registered successfully" });
+  } catch (error) {
+    console.error("Register error:", error);
+    res.status(500).json({ message: "Registration failed" });
   }
-
-  const existingUser = await prisma.user.findUnique({
-    where: { email },
-  });
-
-  if (existingUser) {
-    return res.status(400).json({ message: "User already exists" });
-  }
-
-  const hashedPassword = await hashPassword(password);
-
-  await prisma.user.create({
-    data: {
-      name,
-      email,
-      password: hashedPassword,
-    },
-  });
-
-  res.status(201).json({ message: "User registered successfully" });
 };
 
 export const login = async (req: Request, res: Response) => {
-  const { email, password } = req.body;
+  try {
+    const { email, password } = req.body;
 
-  const user = await prisma.user.findUnique({
-    where: { email },
-  });
+    if (!email || !password) {
+      return res.status(400).json({ message: "Email and password required" });
+    }
 
-  if (!user) {
-    return res.status(401).json({ message: "Invalid credentials" });
+    const user = await prisma.user.findUnique({
+      where: { email },
+    });
+
+    if (!user) {
+      return res.status(401).json({ message: "Invalid credentials" });
+    }
+
+    const isValid = await comparePassword(password, user.password);
+    if (!isValid) {
+      return res.status(401).json({ message: "Invalid credentials" });
+    }
+
+    const accessToken = generateAccessToken(user.id);
+    const refreshToken = generateRefreshToken(user.id);
+
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { refreshToken },
+    });
+
+    res.json({ accessToken, refreshToken });
+  } catch (error) {
+    console.error("Login error:", error);
+    res.status(500).json({ message: "Login failed" });
   }
-
-  const isValid = await comparePassword(password, user.password);
-  if (!isValid) {
-    return res.status(401).json({ message: "Invalid credentials" });
-  }
-
-  const accessToken = generateAccessToken(user.id);
-  const refreshToken = generateRefreshToken(user.id);
-
-  await prisma.user.update({
-    where: { id: user.id },
-    data: { refreshToken },
-  });
-
-  res.json({ accessToken, refreshToken });
 };
 
 export const refresh = async (req: Request, res: Response) => {
